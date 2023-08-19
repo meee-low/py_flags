@@ -18,6 +18,7 @@ This was tested in python 3.10 and Windows 10, but the current build may work in
 
 ## Usage/Example
 
+### test.py
 ```py
 import sys
 import flags
@@ -57,6 +58,19 @@ Hello, Milo!
 Hello, Milo!
 Hello, Milo!
 You're looking good today, Milo!
+
+>>> python test.py -n Milo
+Hello, Milo!
+
+>>> python test.py -h
+This program tests the flags module made by github.com/meee-low.
+USAGE: python test.py -n <string> [OPTIONAL-FLAGS]
+      * [-h]            : Prints this help message.                (alt.: --help)      Default Value: `False`
+      * -n <string>     : The name to be greeted!                  (alt.: --name)
+      * [-c <int>]      : How many times to greet!                 (alt.: --count)     Default Value: `1`
+      * [--praise]      : Praises the person with the name.                            Default Value: `False`
+...
+AssertionError: You need to pass the following obligatory flags: -n
 ```
 
 ## Future features:
