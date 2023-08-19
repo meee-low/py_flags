@@ -156,6 +156,18 @@ class FlagHandler:
     def int_flag(self, flag_name: str, description: str,
                  default_value: Optional[str | int] = None, optional: bool = True,
                  aliases: Optional[list[str]] = None) -> IntFlag:
+        """Create a flag that can accept int data.
+
+        Args:
+            flag_name (str): The main name for the flag.
+            description (str): A short description of what the flag is used for.
+            default_value (Optional[str  |  int], optional): The default value for the flag. Defaults to None.
+            optional (bool, optional): Toggles if the flag is optional. Defaults to True.
+            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
+
+        Returns:
+            IntFlag: An IntFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
+        """
         flag = self._create_typed_flag(IntFlag, flag_name, description, default_value, optional, aliases)
         assert isinstance(flag, IntFlag)
         return flag
@@ -163,13 +175,37 @@ class FlagHandler:
     def str_flag(self, flag_name: str, description: str,
                  default_value: Optional[str | int] = None, optional: bool = True,
                  aliases: Optional[list[str]] = None) -> StringFlag:
+        """Create a flag that can accept string data.
+
+        Args:
+            flag_name (str): The main name for the flag.
+            description (str): A short description of what the flag is used for.
+            default_value (Optional[str  |  int], optional): The default value for the flag. Defaults to None.
+            optional (bool, optional): Toggles if the flag is optional. Defaults to True.
+            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
+
+        Returns:
+            StringFlag: A StringFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
+        """
         flag = self._create_typed_flag(StringFlag, flag_name, description, default_value, optional, aliases)
         assert isinstance(flag, StringFlag)
         return flag
 
     def bool_flag(self, flag_name: str, description: str,
-                  default_value: Optional[str | int] = None, optional: bool = True,
+                  default_value: bool = False, optional: bool = True,
                   aliases: Optional[list[str]] = None) -> BoolFlag:
+        """Create a flag that can accept bool data.
+
+        Args:
+            flag_name (str): The main name for the flag.
+            description (str): A short description for what the flag is used for.
+            default_value (Optional[bool], optional): The default value for the flag. Defaults to False.
+            optional (bool, optional): Toggles if the flag is optional. Defaults to True.
+            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
+
+        Returns:
+            BoolFlag: A BoolFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
+        """
         flag = self._create_typed_flag(BoolFlag, flag_name, description, default_value, optional, aliases)
         assert isinstance(flag, BoolFlag)
         return flag
@@ -312,6 +348,7 @@ class FlagHandler:
         if flag.optional:
             flag_and_argument = "[" + flag_and_argument.strip() + "]"
         default = f" Default Value: `{flag.default_value}`" if flag.default_value is not None else ""
+
         return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
     def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3, limit: int = 5) -> list[flag_classes]:
