@@ -131,7 +131,8 @@ class FlagHandler:
         self.help_flag: Optional[BoolFlag] = None  # This is special because we can set it automatically
         self.output_function: Callable[[str], Any] = partial(print, end="")
 
-    def _check_if_flag_already_exists(self, flag_name: str, aliases: Optional[list[str]] = None) -> None:
+    def _check_if_flag_already_exists(self, flag_name: str,
+                                      aliases: Optional[list[str]] = None) -> None:
         if self._find(flag_name):
             raise ValueError(f"The flag {flag_name} is already in use. \
                 Please choose another name for this flag.")
@@ -164,7 +165,8 @@ class FlagHandler:
         Returns:
             IntFlag: An IntFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
         """
-        flag = self._create_typed_flag(IntFlag, flag_name, description, default_value, optional, aliases)
+        flag = self._create_typed_flag(IntFlag, flag_name, description,
+                                       default_value, optional, aliases)
         assert isinstance(flag, IntFlag)
         return flag
 
@@ -183,7 +185,8 @@ class FlagHandler:
         Returns:
             StringFlag: A StringFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
         """
-        flag = self._create_typed_flag(StringFlag, flag_name, description, default_value, optional, aliases)
+        flag = self._create_typed_flag(StringFlag, flag_name, description,
+                                       default_value, optional, aliases)
         assert isinstance(flag, StringFlag)
         return flag
 
@@ -202,7 +205,8 @@ class FlagHandler:
         Returns:
             BoolFlag: A BoolFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
         """
-        flag = self._create_typed_flag(BoolFlag, flag_name, description, default_value, optional, aliases)
+        flag = self._create_typed_flag(BoolFlag, flag_name, description,
+                                       default_value, optional, aliases)
         assert isinstance(flag, BoolFlag)
         return flag
 
@@ -306,7 +310,8 @@ class FlagHandler:
     def set_help_flag(self, flag_name: str, description: str,
                       aliases: Optional[list[str]] = None) -> None:
         # assert False, "Not implemented"
-        flag = self.bool_flag(flag_name, description, default_value=False, optional=True, aliases=aliases)
+        flag = self.bool_flag(flag_name, description,
+                              default_value=False, optional=True, aliases=aliases)
         self.help_flag = flag  # Ok to override, since setting manually
 
         # Make sure `help` is the first flag (for order of printing):
@@ -347,7 +352,8 @@ class FlagHandler:
 
         return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
-    def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3, limit: int = 5) -> list[flag_classes]:
+    def _find_closest_flags(self, attempted_flag: str,
+                            tolerance: int = 3, limit: int = 5) -> list[flag_classes]:
         """Finds the closest flags to the input string, based on a string distance."""
         assert tolerance >= 0
         assert limit >= 0
