@@ -4,8 +4,8 @@ import flags
 
 def main() -> None:
     # Initiate a flag handler
-    fh = flags.FlagHandler("This program tests the flags module made by \
-        Matheus Ferreira Drumond (github.com/meee-low).")
+    fh = flags.FlagHandler("""This program tests the flags module made by \
+Matheus Ferreira Drumond (github.com/meee-low).""")
 
     # Add flags
     name        = fh.str_flag("-n", "The name to be greeted!", optional=False, aliases=["--name"])

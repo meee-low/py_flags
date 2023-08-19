@@ -10,7 +10,7 @@ Feel free to use it without credit (just don't claim it as yours).
 
 ## Dependencies
 
-Only default library, but I used mypy and other tools for debugging.
+Only built-in libraries, but I used mypy, flake8 and other tools for debugging and linting.
 
 Requires python 3.10+ (structural pattern matching; typing)
 
@@ -23,8 +23,8 @@ import flags
 
 def main() -> None:
     # Initiate a flag handler
-    fh = flags.FlagHandler("This program tests the flags module made by \
-        Matheus Ferreira Drumond (github.com/meee-low).")
+    fh = flags.FlagHandler("""This program tests the flags module made by \
+Matheus Ferreira Drumond (github.com/meee-low).""")
 
     # Add flags
     name        = fh.str_flag("-n", "The name to be greeted!", optional=False, aliases=["--name"])
@@ -36,7 +36,7 @@ def main() -> None:
 
     # Free to use the data stored in each flag now!
     print(name.data, count.data, insult_flag.data)
+
 if __name__ == "__main__":
     main()
-
 ```
