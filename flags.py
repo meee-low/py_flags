@@ -47,6 +47,7 @@ class IntFlag(Flag):
 
     @data.setter
     def data(self, value: str | int) -> None:
+        assert value is not None, "You can't set the flag's data to a None value."
         try:
             self._data = int(value)
         except ValueError:
@@ -64,7 +65,7 @@ class BoolFlag(Flag):
             self.default_value = False
 
     @property
-    def data(self) -> Optional[bool]:
+    def data(self) -> bool:
         assert self._data is not None, \
             f"Tried to access the data for flag {self.flag} before assigning \
                 a value to it. Try using FlagHandler.parse(...)."
@@ -72,6 +73,7 @@ class BoolFlag(Flag):
 
     @data.setter
     def data(self, value: str | bool) -> None:
+        assert value is not None, "You can't set the flag's data to a None value."
         if value in [False, "false", "False", "FALSE" "0", "f", "F"]:
             self._data = False
         elif value in [True, "true", "True", "TRUE" "1", "t", "T"]:
@@ -93,6 +95,7 @@ class StringFlag(Flag):
 
     @data.setter
     def data(self, value: str) -> None:
+        assert value is not None, "You can't set the flag's data to a None value."
         try:
             self._data = str(value)
         except ValueError:
@@ -192,6 +195,7 @@ class FlagHandler:
         if not self.help_flag:
             # Generate a help flag if there isn't one already.
             self._add_default_help_flag()
+        help_requested = False
 
         # handle all args
         i = 1
@@ -216,6 +220,7 @@ class FlagHandler:
                     self.output_function(f"Unexpected flag `{arg}`. Maybe you meant:\n")
                     for candidate in candidates:
                         self.output_function(self._describe_flag(candidate) + "\n")
+                    self.output_function("\n")
                 raise ValueError(f"Couldn't understand token `{arg}`. It is not a valid flag in this program.")
             i += 1
 
@@ -230,14 +235,15 @@ class FlagHandler:
             else:  # required
                 required_but_not_given_flags.append(flag)
 
-        if len(required_but_not_given_flags) > 0:
-            debug_trace(required_but_not_given_flags)
-            missing_flags = ", ".join(flag.flag for flag in required_but_not_given_flags)
+        help_requested = self.help_flag.data  # read the data in the flag
+        if len(required_but_not_given_flags) > 0 or help_requested:
             # If user asked for help, ignore everything and just show the documentation:
-            if i == 1 or result.get('-h', False):
+            if i == 1 or help_requested:
                 # If the user didn't pass any arguments (when they should have)
                 # or if they explicitly asked for help, show the help.
                 self.output_function(self._generate_help_message(program_path))
+            debug_trace(required_but_not_given_flags)
+            missing_flags = ", ".join(flag.flag for flag in required_but_not_given_flags)
             assert len(required_but_not_given_flags) == 0, \
                 f"You need to pass the following obligatory flags: {missing_flags}"
 
@@ -293,6 +299,7 @@ class FlagHandler:
 
         for flag in self.flags:
             help_message += self._describe_flag(flag) + "\n"
+        help_message += "\n"
         return help_message
 
     @staticmethod
