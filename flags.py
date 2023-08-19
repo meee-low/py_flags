@@ -271,6 +271,7 @@ class FlagHandler:
             else:  # required
                 required_but_not_given_flags.append(flag)
 
+        assert self.help_flag is not None
         help_requested = self.help_flag.data  # read the data in the flag
         if len(required_but_not_given_flags) > 0 or help_requested:
             # If user asked for help, ignore everything and just show the documentation:
