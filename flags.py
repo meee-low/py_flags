@@ -5,6 +5,8 @@ from typing import Union, Optional, Literal, Callable, Any, Sequence
 from functools import partial
 # import pprint
 
+import levenshtein
+
 _DEBUG = False
 # _DEBUG = True
 
@@ -300,7 +302,7 @@ class FlagHandler:
         # return f"    * {flag_and_aliases:<20}{argument:>7} : {description}"
         return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
-    def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3) -> list[flag_classes]:
+    def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3, limit: int = 5) -> list[flag_classes]:
         """Finds the closest flag to the input string, based on a string distance."""
         keyed_candidates: list[tuple[flag_classes, int]] = []
         for flag in self.flags:
@@ -314,9 +316,10 @@ class FlagHandler:
             if shortest_distance <= tolerance:
                 keyed_candidates.append((flag, shortest_distance))
 
-        return [c[0] for c in sorted(keyed_candidates, key=lambda t: t[1])]
+        return [c[0] for c in sorted(keyed_candidates, key=lambda t: t[1])][:limit]
 
 
 def string_distance(str1: str, str2: str) -> int:
     """Computes the distance between two strings."""
-    assert False, "Not implemented"
+    # assert False, "Not implemented"
+    return levenshtein.levenshtein_distance(str1, str2)
