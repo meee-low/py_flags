@@ -20,7 +20,7 @@ def levenshtein_distance(str1: str, str2: str) -> int:
                        levenshtein_distance(str1[1:], str2[1:]))
 
 
-def main():
+def main() -> None:
     def test_lev(str1: str, str2: str, expected: int) -> bool:
         actual_result = levenshtein_distance(str1, str2)
         print(f"Testing: {str1:>10} -> {str2:<10}: ", end="")
