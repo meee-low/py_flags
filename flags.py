@@ -198,7 +198,7 @@ class FlagHandler:
 
         Args:
             flag_name (str): The main name for the flag.
-            description (str): A short description for what the flag is used for.
+            description (str):  A short description of what the flag is used for.
             default_value (Optional[bool], optional): The default value for the flag. Defaults to False.
             optional (bool, optional): Toggles if the flag is optional. Defaults to True.
             aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
