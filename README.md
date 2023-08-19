@@ -4,7 +4,7 @@ An interesting API for handling command line arguments/flags in python.
 
 Automatically generates help commands with usage tips and suggests corrections for typos.
 
-Inspired by the Go module [flag](https://pkg.go.dev/flag) and [Tsoding's flag.h for C](https://github.com/tsoding/flag.h). Python already has the built-in library argparse, but I wanted to code my own, and this has a different API that may be simpler or more useful for certain situations.
+Inspired by the Go module [flag](https://pkg.go.dev/flag) and [Tsoding's flag.h for C](https://github.com/tsoding/flag.h). Python already has the built-in library [argparse](https://docs.python.org/3/library/argparse.html), but I wanted to code my own, and this has a different API that may be simpler or more useful for certain situations.
 
 Work in progress, everything is subject to change.
 
