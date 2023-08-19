@@ -198,7 +198,7 @@ class FlagHandler:
                 debug_trace(f"found flag {flag.flag}")
                 _assert_that_flag_types_havent_changed(3)
                 if isinstance(flag, (IntFlag, StringFlag)):
-                    assert i+1 < len(args)
+                    assert i+1 < len(args), f"Expected more arguments for flag `{arg}`."
                     flag.data = args[i+1]  # Try to assign the next token to the flag data.
                     result[flag.flag] = flag.data
                     i += 1  # Skip next one, since we already processed it.
@@ -209,10 +209,10 @@ class FlagHandler:
                     assert False, "Unreachable"
             else:  # bad flag, don't know what to do!
                 if (candidates := self._find_closest_flags(arg)):  # if not empty
-                    self.output_function(f"Unexpected flag {arg}. Maybe you meant:\n")
+                    self.output_function(f"Unexpected flag `{arg}`. Maybe you meant:\n")
                     for candidate in candidates:
                         self.output_function(self._describe_flag(candidate) + "\n")
-                raise ValueError(f"Couldn't understand token {arg}. It is not a valid flag in this program.")
+                raise ValueError(f"Couldn't understand token `{arg}`. It is not a valid flag in this program.")
             i += 1
 
         # check if any non-optional flags were forgotten:
@@ -262,6 +262,7 @@ class FlagHandler:
         return usage_message
 
     def add_default_help_flag(self) -> None:
+        # TODO: Let users override this
         # self.add_flag("-h", "Prints this help message.", "bool", aliases=["--help"])
         self.bool_flag("-h", "Prints this help message.", aliases=["--help"])
         # Make sure `help` is the first flag (for order of printing):
@@ -310,5 +311,5 @@ class FlagHandler:
 
 def string_distance(str1: str, str2: str) -> int:
     """Computes the distance between two strings."""
-    # assert False, "Not implemented"
+    # TODO: Let user customize the edit distance function
     return levenshtein.levenshtein_distance(str1, str2)
