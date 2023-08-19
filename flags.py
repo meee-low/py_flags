@@ -101,7 +101,12 @@ class StringFlag(Flag):
 
 
 def _assert_that_flag_types_havent_changed(expected_number_of_types: int) -> None:
+    # Used in places that hard-coded some expectation for how many and which flags there are.
+    # If more flag types are added, this will hopefully flag the places that need to be changed.
+
     flag_subclasses = Flag.__subclasses__()
+    # This method of counting subclasses is naive and doesn't handle
+    # runtime/user changes or sub-subclasses.
     assert len(flag_subclasses) == expected_number_of_types, \
         "Expected a different number of supported flag types (FlagType enum)"
 
@@ -128,7 +133,8 @@ class FlagHandler:
 
         # Instance defaults:
         self.flags: list[flag_classes] = []
-        self.help_flag: Optional[BoolFlag] = None  # This is special because we can set it automatically
+        self.help_flag: Optional[BoolFlag] = None
+        # The help flag is special because we can set it automatically
         self.output_function: Callable[[str], Any] = partial(print, end="")
 
     def _check_if_flag_already_exists(self, flag_name: str,
@@ -158,12 +164,15 @@ class FlagHandler:
         Args:
             flag_name (str): The main name for the flag.
             description (str): A short description of what the flag is used for.
-            default_value (Optional[str  |  int], optional): The default value for the flag. Defaults to None.
+            default_value (Optional[str  |  int], optional): The default value for the flag. \
+                Defaults to None.
             optional (bool, optional): Toggles if the flag is optional. Defaults to True.
-            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
+            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for\
+                this flag. Defaults to None.
 
         Returns:
-            IntFlag: An IntFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
+            IntFlag: An IntFlag. To access the data, FlagHandler.parse, then use access the \
+                flag.data attribute.
         """
         flag = self._create_typed_flag(IntFlag, flag_name, description,
                                        default_value, optional, aliases)
@@ -178,12 +187,15 @@ class FlagHandler:
         Args:
             flag_name (str): The main name for the flag.
             description (str): A short description of what the flag is used for.
-            default_value (Optional[str  |  int], optional): The default value for the flag. Defaults to None.
+            default_value (Optional[str  |  int], optional): The default value for the flag. \
+                Defaults to None.
             optional (bool, optional): Toggles if the flag is optional. Defaults to True.
-            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
+            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for \
+                this flag. Defaults to None.
 
         Returns:
-            StringFlag: A StringFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
+            StringFlag: A StringFlag. To access the data, FlagHandler.parse, then use access the \
+                flag.data attribute.
         """
         flag = self._create_typed_flag(StringFlag, flag_name, description,
                                        default_value, optional, aliases)
@@ -198,12 +210,15 @@ class FlagHandler:
         Args:
             flag_name (str): The main name for the flag.
             description (str):  A short description of what the flag is used for.
-            default_value (Optional[bool], optional): The default value for the flag. Defaults to False.
+            default_value (Optional[bool], optional): The default value for the flag. Defaults to \
+                False.
             optional (bool, optional): Toggles if the flag is optional. Defaults to True.
-            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for this flag. Defaults to None.
+            aliases (Optional[list[str]], optional): A list of strings of alternative aliases for \
+                this flag. Defaults to None.
 
         Returns:
-            BoolFlag: A BoolFlag. To access the data, FlagHandler.parse, then use access the flag.data attribute.
+            BoolFlag: A BoolFlag. To access the data, FlagHandler.parse, then use access the \
+                flag.data attribute.
         """
         flag = self._create_typed_flag(BoolFlag, flag_name, description,
                                        default_value, optional, aliases)
@@ -271,7 +286,8 @@ class FlagHandler:
                     for candidate in candidates:
                         self.output_function(self._describe_flag(candidate) + "\n")
                     self.output_function("\n")
-                raise ValueError(f"Couldn't understand token `{arg}`. It is not a valid flag in this program.")
+                raise ValueError(f"Couldn't understand token `{arg}`. It is not a valid flag in \
+this program.")
             i += 1
 
         # check if any non-optional flags were forgotten:
@@ -363,7 +379,9 @@ class FlagHandler:
         flag_and_argument = f"{flag.flag} {argument}"
         if flag.optional:
             flag_and_argument = "[" + flag_and_argument.strip() + "]"
-        default = f" Default Value: `{flag.default_value}`" if flag.default_value is not None else ""
+        default = f" Default Value: `{flag.default_value}`" \
+            if flag.default_value is not None \
+            else ""
 
         return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
@@ -382,7 +400,8 @@ class FlagHandler:
             shortest_distance = min(shortest_distance, string_distance(attempted_flag, flag.flag))
             if flag.aliases is not None and len(flag.aliases) > 0:
                 # Find the shortest distance to any of the aliases
-                min_alias_distance = min(string_distance(attempted_flag, alias) for alias in flag.aliases)
+                min_alias_distance = min(string_distance(attempted_flag, alias)
+                                         for alias in flag.aliases)
                 # Update the shortest distance if new shortest distance was found
                 # Could be done in one line, but this is easier to see.
                 shortest_distance = min(shortest_distance, min_alias_distance)
