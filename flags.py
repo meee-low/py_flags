@@ -1,9 +1,7 @@
 from dataclasses import dataclass
-# from enum import Enum
 from typing import Union, Optional, Callable, Any, Sequence
 from os.path import basename as os_path_basename
 from functools import partial
-# import pprint
 
 import levenshtein
 
@@ -15,8 +13,6 @@ _DEBUG = False
 
 def debug_trace(*args: Any, **kwargs: Any) -> None:
     if _DEBUG:
-        # pprint.pprint("  DEBUG: ", compact=True)
-        # pprint.pprint(*args, **kwargs)
         print("    DEBUG: ", *args, **kwargs)
 
 
