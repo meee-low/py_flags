@@ -1,11 +1,13 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import Union, Optional, Literal, Callable, Any, Sequence
+# from enum import Enum
+from typing import Union, Optional, Callable, Any, Sequence
 # import os
 from functools import partial
 # import pprint
 
 import levenshtein
+
+# DEV SETUP
 
 _DEBUG = False
 # _DEBUG = True
@@ -21,36 +23,14 @@ def debug_trace(*args: Any, **kwargs: Any) -> None:
 debug_trace("If you don't want debug logs, change the `_DEBUG` variable in flags.py.")
 
 
-class FlagType(Enum):
-    INT = "int"
-    BOOL = "bool"
-    STRING = "str"
-
-    @staticmethod
-    def assert_that_still_handle_all_types(expected_number_of_types: int) -> None:
-        assert len(FlagType) == expected_number_of_types, \
-                "Expected a different number of supported flag types (FlagType enum)"
-
-    @staticmethod
-    def from_value(s: str) -> 'FlagType':
-        for flag_type in FlagType:
-            if flag_type.value == s:
-                return flag_type
-        raise ValueError(f"Invalid value for FlagType enum. `{s}` not found.")
-
-
-# type aliases
-FlagType.assert_that_still_handle_all_types(3)
-flag_value = Union[int, bool, str]
-literal_flag_types = Literal["int", "bool", "str"]
-
+# FLAG TYPES:
 
 @dataclass
 class Flag:
     flag: str
     aliases: Optional[list[str]]
     description: str
-    default_value: Optional[flag_value]
+    default_value: Optional['flag_value']
     optional: bool
 
 
@@ -121,10 +101,19 @@ class StringFlag(Flag):
             raise e
 
 
-FlagType.assert_that_still_handle_all_types(3)
+def _assert_that_flag_types_havent_changed(expected_number_of_types: int) -> None:
+    flag_subclasses = Flag.__subclasses__()
+    assert len(flag_subclasses) == expected_number_of_types, \
+        "Expected a different number of supported flag types (FlagType enum)"
+
+
+# type aliases
+_assert_that_flag_types_havent_changed(3)
 flag_classes = IntFlag | BoolFlag | StringFlag
 flag_classes_type = type[flag_classes]
+flag_value = Union[int, bool, str]
 
+# Used to show "usage" for each flag
 flag_type_arguments: dict[flag_classes_type, str] = {
     IntFlag: "<int>",
     BoolFlag: "",
@@ -207,7 +196,7 @@ class FlagHandler:
             debug_trace(f"ARG: {arg}")
             if (flag := self._find(arg)):
                 debug_trace(f"found flag {flag.flag}")
-                FlagType.assert_that_still_handle_all_types(3)
+                _assert_that_flag_types_havent_changed(3)
                 if isinstance(flag, (IntFlag, StringFlag)):
                     assert i+1 < len(args)
                     flag.data = args[i+1]  # Try to assign the next token to the flag data.
@@ -257,7 +246,7 @@ class FlagHandler:
         for flag in self.flags:
             if not flag.optional:
                 usage_message += f" {flag.flag}"
-                FlagType.assert_that_still_handle_all_types(3)
+                _assert_that_flag_types_havent_changed(3)
                 if isinstance(flag, BoolFlag):
                     pass
                 elif isinstance(flag, IntFlag):
@@ -292,7 +281,7 @@ class FlagHandler:
     def _describe_flag(flag: flag_classes) -> str:
         # flag_and_aliases = f"{flag.flag}" + ("" if not flag.aliases else f" (or: {', '.join(flag.aliases)})")
         alias_list = f" (alt.: {', '.join(flag.aliases)})" if flag.aliases else ""
-        FlagType.assert_that_still_handle_all_types(3)
+        _assert_that_flag_types_havent_changed(3)
         argument = flag_type_arguments[type(flag)]
         description = f"{flag.description}"
         flag_and_argument = f"{flag.flag} {argument}"
