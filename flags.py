@@ -219,7 +219,21 @@ class FlagHandler:
                 return flag
         return None
 
-    def parse(self, args: Sequence[str]) -> Optional[dict[str, flag_value]]:
+    def parse(self, args: Sequence[str]) -> dict[str, flag_value]:
+        """Parses the sequence of strings. Typical use is .parse(sys.argv), but you can pass \
+            anything. Updates the data of the flags in place, but also returns \
+            a dictionary with the values.
+
+        Args:
+            args (Sequence[str]): The sequence of strs to be parsed. \
+                Each flag/word/value/token should be its own element of the array.
+
+        Raises:
+            ValueError: When it doesn't understand one of the parsed flags.
+
+        Returns:
+            dict[str, flag_value]: A dict mapping flags main names to their values.
+        """
         debug_trace("All my flags: ")
         debug_trace(self.flags)
         debug_trace(f"ARGS: {args}")
