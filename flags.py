@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 # from enum import Enum
 from typing import Union, Optional, Callable, Any, Sequence
-# import os
+from os.path import basename as os_path_basename
 from functools import partial
 # import pprint
 
@@ -187,7 +187,7 @@ class FlagHandler:
 
         result: dict[str, flag_value] = {}
 
-        program_name = args[0]
+        program_path = args[0]
 
         if not self.help_flag:
             # Generate a help flag if there isn't one already.
@@ -237,15 +237,15 @@ class FlagHandler:
             if i == 1 or result.get('-h', False):
                 # If the user didn't pass any arguments (when they should have)
                 # or if they explicitly asked for help, show the help.
-                self.output_function(self._generate_help_message(program_name))
+                self.output_function(self._generate_help_message(program_path))
             assert len(required_but_not_given_flags) == 0, \
                 f"You need to pass the following obligatory flags: {missing_flags}"
 
         return result
 
-    def _generate_usage(self, program_name: str) -> str:
-        # TODO: only include the program name, not the folder path
+    def _generate_usage(self, program_path: str) -> str:
         has_optional_flags = False
+        program_name = os_path_basename(program_path)  # Strip the folder path
         usage_message = f"USAGE: python {program_name}"
         for flag in self.flags:
             if not flag.optional:
@@ -286,10 +286,10 @@ class FlagHandler:
         else:
             pass
 
-    def _generate_help_message(self, program_name: str) -> str:
+    def _generate_help_message(self, program_path: str) -> str:
         help_message: str = ""
         help_message += self.program_description + "\n"  # Welcome message
-        help_message += self._generate_usage(program_name) + "\n"  # USAGE
+        help_message += self._generate_usage(program_path) + "\n"  # USAGE
 
         for flag in self.flags:
             help_message += self._describe_flag(flag) + "\n"
