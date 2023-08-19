@@ -132,7 +132,7 @@ class FlagHandler:
         self.add_default_help_flag()
         self.output_function: Callable[[str], Any] = partial(print, end="")
 
-    def check_if_flag_already_exists(self, flag_name: str, aliases: Optional[list[str]] = None) -> None:
+    def _check_if_flag_already_exists(self, flag_name: str, aliases: Optional[list[str]] = None) -> None:
         if self._find(flag_name):
             raise ValueError(f"The flag {flag_name} is already in use. \
                 Please choose another name for this flag.")
@@ -145,7 +145,7 @@ class FlagHandler:
     def _create_typed_flag(self, flag_cls: flag_classes_type, flag_name: str, description: str,
                            default_value: Optional[str | int] = None, optional: bool = True,
                            aliases: Optional[list[str]] = None) -> flag_classes:
-        self.check_if_flag_already_exists(flag_name, aliases)
+        self._check_if_flag_already_exists(flag_name, aliases)
         flag = flag_cls(flag_name, aliases, description, default_value, optional)
         self.flags.append(flag)
         return self.flags[-1]
