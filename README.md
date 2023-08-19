@@ -2,6 +2,8 @@
 
 An interesting API for handling command line arguments/flags in python.
 
+Automatically generates help commands with usage tips and suggests corrections for typos.
+
 Inspired by the Go module [flag](https://pkg.go.dev/flag) and [Tsoding's flag.h for C](https://github.com/tsoding/flag.h).
 
 Work in progress, everything is subject to change.
@@ -12,7 +14,7 @@ Feel free to use it without credit (just don't claim it as yours).
 
 Only built-in libraries, but I used mypy, flake8 and other tools for debugging and linting.
 
-Requires python 3.10+ (structural pattern matching; typing)
+This was tested in python 3.10 and Windows 10, but the current build may work in older versions or different OS's.
 
 ## Usage/Example
 
@@ -44,6 +46,17 @@ def main() -> None:
 if __name__ == "__main__":
     main()
 
+```
+### Output
+```
+>>> python test.py -n Milo -c 5 --praise
+Milo 5 True
+Hello, Milo!
+Hello, Milo!
+Hello, Milo!
+Hello, Milo!
+Hello, Milo!
+You're looking good today, Milo!
 ```
 
 ## Future features:
