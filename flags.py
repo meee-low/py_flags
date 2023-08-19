@@ -129,7 +129,7 @@ class FlagHandler:
 
         # Instance defaults:
         self.flags: list[flag_classes] = []
-        self.add_default_help_flag()
+        self.help_flag: Optional[BoolFlag] = None  # This is special because we can set it automatically
         self.output_function: Callable[[str], Any] = partial(print, end="")
 
     def _check_if_flag_already_exists(self, flag_name: str, aliases: Optional[list[str]] = None) -> None:
@@ -188,6 +188,10 @@ class FlagHandler:
         result: dict[str, flag_value] = {}
 
         program_name = args[0]
+
+        if not self.help_flag:
+            # Generate a help flag if there isn't one already.
+            self._add_default_help_flag()
 
         # handle all args
         i = 1
@@ -261,13 +265,26 @@ class FlagHandler:
         usage_message += " [OPTIONAL-FLAGS]" if has_optional_flags else ""
         return usage_message
 
-    def add_default_help_flag(self) -> None:
-        # TODO: Let users override this
-        # self.add_flag("-h", "Prints this help message.", "bool", aliases=["--help"])
-        self.bool_flag("-h", "Prints this help message.", aliases=["--help"])
+    def set_help_flag(self, flag_name: str, description: str,
+                      aliases: Optional[list[str]] = None) -> None:
+        # assert False, "Not implemented"
+        flag = self.bool_flag(flag_name, description, default_value=False, optional=True, aliases=aliases)
+        self.help_flag = flag  # Ok to override, since setting manually
+
         # Make sure `help` is the first flag (for order of printing):
         help_flag = self.flags.pop()
         self.flags.insert(0, help_flag)
+
+    def _add_default_help_flag(self) -> None:
+        if self.help_flag is None:
+            # Don't override a manually set or previously automatically generated help flag.
+            self.help_flag = self.bool_flag("-h", "Prints this help message.", aliases=["--help"])
+
+            # Make sure `help` is the first flag (for order of printing):
+            help_flag = self.flags.pop()
+            self.flags.insert(0, help_flag)
+        else:
+            pass
 
     def _generate_help_message(self, program_name: str) -> str:
         help_message: str = ""
@@ -280,7 +297,6 @@ class FlagHandler:
 
     @staticmethod
     def _describe_flag(flag: flag_classes) -> str:
-        # flag_and_aliases = f"{flag.flag}" + ("" if not flag.aliases else f" (or: {', '.join(flag.aliases)})")
         alias_list = f" (alt.: {', '.join(flag.aliases)})" if flag.aliases else ""
         _assert_that_flag_types_havent_changed(3)
         argument = flag_type_arguments[type(flag)]
@@ -289,7 +305,6 @@ class FlagHandler:
         if flag.optional:
             flag_and_argument = "[" + flag_and_argument.strip() + "]"
         default = f" Default Value: `{flag.default_value}`" if flag.default_value is not None else ""
-        # return f"    * {flag_and_aliases:<20}{argument:>7} : {description}"
         return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
     def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3, limit: int = 5) -> list[flag_classes]:
