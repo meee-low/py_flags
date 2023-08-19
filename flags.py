@@ -315,19 +315,29 @@ class FlagHandler:
         return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
     def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3, limit: int = 5) -> list[flag_classes]:
-        """Finds the closest flag to the input string, based on a string distance."""
+        """Finds the closest flags to the input string, based on a string distance."""
+        assert tolerance >= 0
+        assert limit >= 0
+
+        # pairs of flag and the corresponding distances
         keyed_candidates: list[tuple[flag_classes, int]] = []
+
         for flag in self.flags:
-            shortest_distance = tolerance + 1
-            if (distance := string_distance(attempted_flag, flag.flag)) < shortest_distance:
-                shortest_distance = distance
-            if flag.aliases is not None:
-                for alias in flag.aliases:
-                    if (distance := string_distance(attempted_flag, alias)) < shortest_distance:
-                        shortest_distance = distance
+            shortest_distance = tolerance + 1  # Initiate outside the tolerance
+            # Update the shortest distance if new shortest distance was found
+            shortest_distance = min(shortest_distance, string_distance(attempted_flag, flag.flag))
+            if flag.aliases is not None and len(flag.aliases) > 0:
+                # Find the shortest distance to any of the aliases
+                min_alias_distance = min(string_distance(attempted_flag, alias) for alias in flag.aliases)
+                # Update the shortest distance if new shortest distance was found
+                # Could be done in one line, but this is easier to see.
+                shortest_distance = min(shortest_distance, min_alias_distance)
             if shortest_distance <= tolerance:
+                # This candidate is within the tolerance, so it may be returned.
                 keyed_candidates.append((flag, shortest_distance))
 
+        # Return the flags (only the flags, first item of tuple)
+        # by ascending order of distance, up to the defined limit.
         return [c[0] for c in sorted(keyed_candidates, key=lambda t: t[1])][:limit]
 
 
