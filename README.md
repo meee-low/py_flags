@@ -40,3 +40,10 @@ Matheus Ferreira Drumond (github.com/meee-low).""")
 if __name__ == "__main__":
     main()
 ```
+
+## Future features:
+
+- "Greedy" flags, that capture every argument until the next flag.
+- Constraints for flags (ranges, length, etc.)
+- Float flags
+- Maybe an explicit "path" flag?
