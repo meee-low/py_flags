@@ -1,18 +1,23 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Union, Optional, Literal, Callable, Any, Sequence
-import os
+# import os
 from functools import partial
-import pprint
+# import pprint
 
-DEBUG = False
-DEBUG = True
+_DEBUG = False
+# _DEBUG = True
+
 
 def debug_trace(*args: Any, **kwargs: Any) -> None:
-    if DEBUG:
+    if _DEBUG:
         # pprint.pprint("  DEBUG: ", compact=True)
         # pprint.pprint(*args, **kwargs)
         print("    DEBUG: ", *args, **kwargs)
+
+
+debug_trace("If you don't want debug logs, change the `_DEBUG` variable in flags.py.")
+
 
 class FlagType(Enum):
     INT = "int"
@@ -21,14 +26,16 @@ class FlagType(Enum):
 
     @staticmethod
     def assert_that_still_handle_all_types(expected_number_of_types: int) -> None:
-        assert len(FlagType) == expected_number_of_types, "Expected a different number of supported flag types (FlagType enum)"
+        assert len(FlagType) == expected_number_of_types, \
+                "Expected a different number of supported flag types (FlagType enum)"
 
     @staticmethod
-    def from_value(s:str) -> 'FlagType':
+    def from_value(s: str) -> 'FlagType':
         for flag_type in FlagType:
             if flag_type.value == s:
                 return flag_type
         raise ValueError(f"Invalid value for FlagType enum. `{s}` not found.")
+
 
 # type aliases
 FlagType.assert_that_still_handle_all_types(3)
@@ -36,155 +43,210 @@ flag_value = Union[int, bool, str]
 literal_flag_types = Literal["int", "bool", "str"]
 
 
-@dataclass(frozen=True)
+@dataclass
 class Flag:
     flag: str
     aliases: Optional[list[str]]
     description: str
     default_value: Optional[flag_value]
-    optional : bool
-    kind: FlagType
+    optional: bool
+
+
+@dataclass
+class IntFlag(Flag):
+    _data: Optional[int] = None
+
+    @property
+    def data(self) -> int:
+        assert self._data is not None, \
+            f"Tried to access the data for flag {self.flag} before assigning a value to it.\
+                Try using FlagHandler.parse(...)."
+        return self._data
+
+    @data.setter
+    def data(self, value: str | int) -> None:
+        try:
+            self._data = int(value)
+        except ValueError:
+            raise ValueError(f"`{value}` is not a valid value for an `IntFlag`.")
+        except Exception as e:
+            raise e
+
+
+@dataclass
+class BoolFlag(Flag):
+    _data: Optional[bool] = None
+
+    def __post_init__(self) -> None:
+        if self.default_value is None:
+            self.default_value = False
+
+    @property
+    def data(self) -> Optional[bool]:
+        assert self._data is not None, \
+            f"Tried to access the data for flag {self.flag} before assigning \
+                a value to it. Try using FlagHandler.parse(...)."
+        return self._data
+
+    @data.setter
+    def data(self, value: str | bool) -> None:
+        if value in [False, "false", "False", "FALSE" "0", "f", "F"]:
+            self._data = False
+        elif value in [True, "true", "True", "TRUE" "1", "t", "T"]:
+            self._data = True
+        else:
+            raise ValueError(f"`{value}` is not a valid value for a `BoolFlag`.")
+
+
+@dataclass
+class StringFlag(Flag):
+    _data: Optional[str] = None
+
+    @property
+    def data(self) -> str:
+        assert self._data is not None, \
+            f"Tried to access the data for flag {self.flag} before assigning \
+                a value to it. Try using FlagHandler.parse(...)."
+        return self._data
+
+    @data.setter
+    def data(self, value: str) -> None:
+        try:
+            self._data = str(value)
+        except ValueError:
+            raise ValueError(f"`{value}` is not a valid value for a `StringFlag`.")
+        except Exception as e:
+            raise e
+
+
+FlagType.assert_that_still_handle_all_types(3)
+flag_classes = IntFlag | BoolFlag | StringFlag
+flag_classes_type = type[flag_classes]
+
+flag_type_arguments: dict[flag_classes_type, str] = {
+    IntFlag: "<int>",
+    BoolFlag: "",
+    StringFlag: "<string>",
+}
 
 
 class FlagHandler:
-    def __init__(self, program_description:Optional[str]=None):
-        self.program_description: str = program_description if program_description is not None else ""
+    def __init__(self, program_description: Optional[str] = None):
+        self.program_description: str = program_description \
+                                    if program_description is not None\
+                                    else ""
 
         # Instance defaults:
-        self.flags: list[Flag] = []
+        self.flags: list[flag_classes] = []
         self.add_default_help_flag()
-        self.parsed: bool = False
-        self.data: dict[str, flag_value] = {}
         self.output_function: Callable[[str], Any] = partial(print, end="")
 
-    def add_flag(self, flag_name:str, description:str, kind:literal_flag_types,
-                 default_value:Optional[str]=None, optional:bool=True, aliases:Optional[list[str]]=None) -> None:
-        # Check if flag clashes with a previous flag:
+    def check_if_flag_already_exists(self, flag_name: str, aliases: Optional[list[str]] = None) -> None:
         if self._find(flag_name):
-            raise ValueError(f"The flag {flag_name} is already in use. Please choose another name for this flag.")
+            raise ValueError(f"The flag {flag_name} is already in use. \
+                Please choose another name for this flag.")
         if aliases is not None:
             for alias in aliases:
                 if self._find(alias):
-                    raise ValueError(f"The flag alias {alias} is already in use. Please choose another alias for this flag.")
+                    raise ValueError(f"The flag alias {alias} is already in use. \
+                        Please choose another alias for this flag.")
 
-        flag_type = FlagType.from_value(kind)
-
-        FlagType.assert_that_still_handle_all_types(3)
-        if default_value is not None:
-            def_value = self._validate_value(flag_type, default_value)
-        elif flag_type == FlagType.BOOL: # booleans are always defaulted to False, unless a default is given
-            def_value = False
-        else:
-            def_value = None
-
-        flag = Flag(flag_name, aliases, description, def_value, optional, flag_type)
+    def _create_typed_flag(self, flag_cls: flag_classes_type, flag_name: str, description: str,
+                           default_value: Optional[str | int] = None, optional: bool = True,
+                           aliases: Optional[list[str]] = None) -> flag_classes:
+        self.check_if_flag_already_exists(flag_name, aliases)
+        flag = flag_cls(flag_name, aliases, description, default_value, optional)
         self.flags.append(flag)
+        return self.flags[-1]
 
-    @staticmethod
-    def _validate_value(flag_type:FlagType, value:str) -> flag_value:
-        FlagType.assert_that_still_handle_all_types(3)
-        match flag_type:
-            case FlagType.BOOL:
-                if value in ["false", "False", "FALSE" "0", "f", "F"]:
-                    return False
-                elif value in ["true", "True", "TRUE" "1", "t", "T"]:
-                    return True
-                else:
-                    raise ValueError(f"{value} is not a valid value for {flag_type}.")
-            case FlagType.INT:
-                try:
-                    return int(value)
-                except ValueError as e:
-                    raise e
-                except Exception as e:
-                    raise e
-            case FlagType.STRING:
-                return str(value)
-            case _:
-                debug_trace(flag_type)
-                assert False, "Unreachable."
+    def int_flag(self, flag_name: str, description: str,
+                 default_value: Optional[str | int] = None, optional: bool = True,
+                 aliases: Optional[list[str]] = None) -> IntFlag:
+        flag = self._create_typed_flag(IntFlag, flag_name, description, default_value, optional, aliases)
+        assert isinstance(flag, IntFlag)
+        return flag
 
-    def add_program_description(self, program_description: str) -> None:
+    def str_flag(self, flag_name: str, description: str,
+                 default_value: Optional[str | int] = None, optional: bool = True,
+                 aliases: Optional[list[str]] = None) -> StringFlag:
+        flag = self._create_typed_flag(StringFlag, flag_name, description, default_value, optional, aliases)
+        assert isinstance(flag, StringFlag)
+        return flag
+
+    def bool_flag(self, flag_name: str, description: str,
+                  default_value: Optional[str | int] = None, optional: bool = True,
+                  aliases: Optional[list[str]] = None) -> BoolFlag:
+        flag = self._create_typed_flag(BoolFlag, flag_name, description, default_value, optional, aliases)
+        assert isinstance(flag, BoolFlag)
+        return flag
+
+    def set_program_description(self, program_description: str) -> None:
         self.program_description = program_description
 
-    def _find(self, flag_name:str) -> Optional[Flag]:
+    def _find(self, flag_name: str) -> Optional[flag_classes]:
         for flag in self.flags:
             if flag_name == flag.flag or flag.aliases is not None and flag_name in flag.aliases:
                 return flag
         return None
 
-    def parse(self, program_name:str, args:Sequence[str]) -> Optional[dict[str, flag_value]]:
-        if self.parsed:
-            return self.data
-
+    def parse(self, args: Sequence[str]) -> Optional[dict[str, flag_value]]:
         debug_trace("All my flags: ")
         debug_trace(self.flags)
         debug_trace(f"ARGS: {args}")
 
+        result: dict[str, flag_value] = {}
+
+        program_name = args[0]
+
         # handle all args
-        i = 0
+        i = 1
         while i < len(args):
             arg = args[i]
             debug_trace(f"ARG: {arg}")
             if (flag := self._find(arg)):
                 debug_trace(f"found flag {flag.flag}")
                 FlagType.assert_that_still_handle_all_types(3)
-                debug_trace(flag.kind)
-                debug_trace(FlagType.STRING)
-                debug_trace(flag.kind == FlagType.STRING)
-                match flag.kind:
-                    case FlagType.BOOL:
-                        debug_trace(f"it's type bool")
-                        self.data[flag.flag] = True
-                        #TODO: handle dumb people passing -flag TRUE/FALSE for boolean flags
-                    case FlagType.INT | FlagType.STRING:
-                        assert i + 1 < len(args), f"Insufficient values passed for flag {arg}!"
-                        debug_trace("Either int or str")
-                        try:
-                            debug_trace("next one: ", args[i+1])
-                            value = self._validate_value(flag.kind, args[i+1])
-                            debug_trace("value", value)
-                            self.data[flag.flag] = value
-                            i += 1
-                            debug_trace("data: ", self.data)
-                        except ValueError as e: #TODO: Better error report
-                            raise e
-                        except Exception as e:
-                            raise e
-                    case _:
-                        debug_trace("ARG:", arg)
-                        debug_trace("flag:", flag)
-                        debug_trace(flag.kind)
-                        assert False, "Unreachable"
-            else: # bad flag, don't know what to do!
-                self.output_function(f"Couldn't understand token {arg}. It is not a valid flag in this program.")
-                if (candidates := self._find_closest_flags(arg)):
-                    self.output_function(" Maybe you meant:\n")
+                if isinstance(flag, (IntFlag, StringFlag)):
+                    assert i+1 < len(args)
+                    flag.data = args[i+1]  # Try to assign the next token to the flag data.
+                    result[flag.flag] = flag.data
+                    i += 1  # Skip next one, since we already processed it.
+                elif isinstance(flag, BoolFlag):
+                    flag.data = True
+                    result[flag.flag] = flag.data
+                else:
+                    assert False, "Unreachable"
+            else:  # bad flag, don't know what to do!
+                if (candidates := self._find_closest_flags(arg)):  # if not empty
+                    self.output_function(f"Unexpected flag {arg}. Maybe you meant:\n")
                     for candidate in candidates:
-                        self.output_function(f"  - {candidate.flag}")
+                        self.output_function(self._describe_flag(candidate) + "\n")
+                raise ValueError(f"Couldn't understand token {arg}. It is not a valid flag in this program.")
             i += 1
 
-        # If user asked for help, ignore everything and just show the documentation:
-        if self.data.get('-h', False):
-            self.output_function(self._generate_help_message(program_name))
-            return None
-
-        # check if any non-optional flags have not been passed:
+        # check if any non-optional flags were forgotten:
         required_but_not_given_flags = []
         for flag in self.flags:
-            if flag.flag in self.data: # given
+            if flag.flag in result:  # given
                 continue
-            elif flag.optional and flag.default_value is not None: # optional and has default value
-                self.data[flag.flag] = flag.default_value
-            #TODO: Consider optional with "optional" value (None)
-            else: # required
+            elif flag.optional and flag.default_value is not None:  # optional and has default value
+                flag.data = flag.default_value
+                result[flag.flag] = flag.data
+            else:  # required
                 required_but_not_given_flags.append(flag)
-        debug_trace(required_but_not_given_flags)
-        missing_flags = ", ".join(flag.flag for flag in required_but_not_given_flags)
-        assert len(required_but_not_given_flags) == 0, f"You need to pass the following obligatory flags: {missing_flags}"
-        self.parsed = True
 
-        return self.data
+        if len(required_but_not_given_flags) > 0:
+            debug_trace(required_but_not_given_flags)
+            missing_flags = ", ".join(flag.flag for flag in required_but_not_given_flags)
+            # If user asked for help, ignore everything and just show the documentation:
+            if i == 1 or result.get('-h', False):
+                # If the user didn't pass any arguments (when they should have)
+                # or if they explicitly asked for help, show the help.
+                self.output_function(self._generate_help_message(program_name))
+            assert len(required_but_not_given_flags) == 0, \
+                f"You need to pass the following obligatory flags: {missing_flags}"
+
+        return result
 
     def _generate_usage(self, program_name: str) -> str:
         # TODO: only include the program name, not the folder path
@@ -194,50 +256,66 @@ class FlagHandler:
             if not flag.optional:
                 usage_message += f" {flag.flag}"
                 FlagType.assert_that_still_handle_all_types(3)
-                match flag.kind:
-                    case FlagType.BOOL:
-                        pass
-                    case FlagType.INT:
-                        usage_message += " <int>"
-                    case FlagType.STRING:
-                        usage_message += " <string>"
-                    case _:
-                        debug_trace(flag.kind)
-                        assert False, "Unreachable"
+                if isinstance(flag, BoolFlag):
+                    pass
+                elif isinstance(flag, IntFlag):
+                    usage_message += " <int>"
+                elif isinstance(flag, StringFlag):
+                    usage_message += " <string>"
+                else:
+                    debug_trace(flag)
+                    assert False, "Unreachable"
             elif not has_optional_flags:
                 has_optional_flags = True
         usage_message += " [OPTIONAL-FLAGS]" if has_optional_flags else ""
         return usage_message
 
     def add_default_help_flag(self) -> None:
-        self.add_flag("-h",  "Prints this help message.", "bool", aliases=["--help"])
-        # Make `help` always the first flag:
+        # self.add_flag("-h", "Prints this help message.", "bool", aliases=["--help"])
+        self.bool_flag("-h", "Prints this help message.", aliases=["--help"])
+        # Make sure `help` is the first flag (for order of printing):
         help_flag = self.flags.pop()
         self.flags.insert(0, help_flag)
 
     def _generate_help_message(self, program_name: str) -> str:
         help_message: str = ""
-        help_message += self.program_description + "\n" # Welcome message
-        help_message += self._generate_usage(program_name) + "\n" # USAGE
+        help_message += self.program_description + "\n"  # Welcome message
+        help_message += self._generate_usage(program_name) + "\n"  # USAGE
 
         for flag in self.flags:
             help_message += self._describe_flag(flag) + "\n"
         return help_message
 
     @staticmethod
-    def _describe_flag(flag: Flag) -> str:
+    def _describe_flag(flag: flag_classes) -> str:
         # flag_and_aliases = f"{flag.flag}" + ("" if not flag.aliases else f" (or: {', '.join(flag.aliases)})")
         alias_list = f" (alt.: {', '.join(flag.aliases)})" if flag.aliases else ""
         FlagType.assert_that_still_handle_all_types(3)
-        argument = f"<{flag.kind.value}>" if flag.kind != FlagType.BOOL else ""
+        argument = flag_type_arguments[type(flag)]
         description = f"{flag.description}"
         flag_and_argument = f"{flag.flag} {argument}"
+        if flag.optional:
+            flag_and_argument = "[" + flag_and_argument.strip() + "]"
+        default = f" Default Value: `{flag.default_value}`" if flag.default_value is not None else ""
         # return f"    * {flag_and_aliases:<20}{argument:>7} : {description}"
-        return f"        {flag_and_argument:<10} : {description:<30}{alias_list}"
+        return f"      * {flag_and_argument:<15} : {description:<40}{alias_list:20}{default:<30}"
 
-    def _find_closest_flags(self, flag:str, tolerance:int=3) -> list[Flag]:
+    def _find_closest_flags(self, attempted_flag: str, tolerance: int = 3) -> list[flag_classes]:
         """Finds the closest flag to the input string, based on a string distance."""
-        assert False, "not implemented"
+        keyed_candidates: list[tuple[flag_classes, int]] = []
+        for flag in self.flags:
+            shortest_distance = tolerance + 1
+            if (distance := string_distance(attempted_flag, flag.flag)) < shortest_distance:
+                shortest_distance = distance
+            if flag.aliases is not None:
+                for alias in flag.aliases:
+                    if (distance := string_distance(attempted_flag, alias)) < shortest_distance:
+                        shortest_distance = distance
+            if shortest_distance <= tolerance:
+                keyed_candidates.append((flag, shortest_distance))
+
+        return [c[0] for c in sorted(keyed_candidates, key=lambda t: t[1])]
+
 
 def string_distance(str1: str, str2: str) -> int:
     """Computes the distance between two strings."""
