@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Union, Optional, Callable, Any, Sequence
+from typing import Union, Optional, Callable, Any, Sequence, cast
+from typing_extensions import assert_never
 from os.path import basename as os_path_basename
 from functools import partial
 
@@ -176,7 +177,7 @@ class FlagHandler:
         """
         flag = self._create_typed_flag(IntFlag, flag_name, description,
                                        default_value, optional, aliases)
-        assert isinstance(flag, IntFlag)
+        flag = cast(IntFlag, flag)
         return flag
 
     def str_flag(self, flag_name: str, description: str,
@@ -199,7 +200,7 @@ class FlagHandler:
         """
         flag = self._create_typed_flag(StringFlag, flag_name, description,
                                        default_value, optional, aliases)
-        assert isinstance(flag, StringFlag)
+        flag = cast(StringFlag, flag)
         return flag
 
     def bool_flag(self, flag_name: str, description: str,
@@ -222,7 +223,7 @@ class FlagHandler:
         """
         flag = self._create_typed_flag(BoolFlag, flag_name, description,
                                        default_value, optional, aliases)
-        assert isinstance(flag, BoolFlag)
+        flag = cast(BoolFlag, flag)
         return flag
 
     def set_program_description(self, program_description: str) -> None:
@@ -270,16 +271,17 @@ class FlagHandler:
             if (flag := self._find(arg)):
                 debug_trace(f"found flag {flag.flag}")
                 _assert_that_flag_types_havent_changed(3)
-                if isinstance(flag, (IntFlag, StringFlag)):
-                    assert i+1 < len(args), f"Expected more arguments for flag `{arg}`."
-                    flag.data = args[i+1]  # Try to assign the next token to the flag data.
-                    result[flag.flag] = flag.data
-                    i += 1  # Skip next one, since we already processed it.
-                elif isinstance(flag, BoolFlag):
-                    flag.data = True
-                    result[flag.flag] = flag.data
-                else:
-                    assert False, "Unreachable"
+                match flag:
+                    case IntFlag() | StringFlag():
+                        assert i+1 < len(args), f"Expected more arguments for flag `{arg}`."
+                        flag.data = args[i+1]  # Try to assign the next token to the flag data.
+                        result[flag.flag] = flag.data
+                        i += 1  # Skip next one, since we already processed it.
+                    case BoolFlag():
+                        flag.data = True
+                        result[flag.flag] = flag.data
+                    case _ as unreachable:
+                        assert_never(unreachable)
             else:  # bad flag, don't know what to do!
                 if (candidates := self._find_closest_flags(arg)):  # if not empty
                     self.output_function(f"Unexpected flag `{arg}`. Maybe you meant:\n")
@@ -301,7 +303,7 @@ this program.")
             else:  # required
                 required_but_not_given_flags.append(flag)
 
-        assert self.help_flag is not None
+        self.help_flag = cast(BoolFlag, self.help_flag)
         help_requested = self.help_flag.data  # read the data in the flag
         if len(required_but_not_given_flags) > 0 or help_requested:
             # If user asked for help, ignore everything and just show the documentation:
@@ -324,15 +326,15 @@ this program.")
             if not flag.optional:
                 usage_message += f" {flag.flag}"
                 _assert_that_flag_types_havent_changed(3)
-                if isinstance(flag, BoolFlag):
-                    pass
-                elif isinstance(flag, IntFlag):
-                    usage_message += " <int>"
-                elif isinstance(flag, StringFlag):
-                    usage_message += " <string>"
-                else:
-                    debug_trace(flag)
-                    assert False, "Unreachable"
+                match flag:
+                    case BoolFlag():
+                        pass
+                    case IntFlag():
+                        usage_message += " <int>"
+                    case StringFlag():
+                        usage_message += " <string>"
+                    case _ as unreachable:
+                        assert_never(unreachable)
             elif not has_optional_flags:
                 has_optional_flags = True
         usage_message += " [OPTIONAL-FLAGS]" if has_optional_flags else ""
@@ -340,7 +342,6 @@ this program.")
 
     def set_help_flag(self, flag_name: str, description: str,
                       aliases: Optional[list[str]] = None) -> None:
-        # assert False, "Not implemented"
         flag = self.bool_flag(flag_name, description,
                               default_value=False, optional=True, aliases=aliases)
         self.help_flag = flag  # Ok to override, since setting manually
