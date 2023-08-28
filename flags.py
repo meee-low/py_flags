@@ -6,16 +6,16 @@ from functools import partial
 
 # DEV SETUP
 
-_DEBUG = False
-# _DEBUG = True
+_FLAGS_DEBUG = False
+# __FLAGS_DEBUG = True
 
 
-def debug_trace(*args: Any, **kwargs: Any) -> None:
-    if _DEBUG:
+def _flags_debug_trace(*args: Any, **kwargs: Any) -> None:
+    if _FLAGS_DEBUG:
         print("    DEBUG: ", *args, **kwargs)
 
 
-debug_trace("If you don't want debug logs, change the `_DEBUG` variable in flags.py.")
+_flags_debug_trace("If you don't want debug logs, change the `_DEBUG` variable in flags.py.")
 
 
 # FLAG TYPES:
@@ -249,9 +249,9 @@ class FlagHandler:
         Returns:
             dict[str, flag_value]: A dict mapping flags main names to their values.
         """
-        debug_trace("All my flags: ")
-        debug_trace(self.flags)
-        debug_trace(f"ARGS: {args}")
+        _flags_debug_trace("All my flags: ")
+        _flags_debug_trace(self.flags)
+        _flags_debug_trace(f"ARGS: {args}")
 
         result: dict[str, flag_value] = {}
 
@@ -266,9 +266,9 @@ class FlagHandler:
         i = 1
         while i < len(args):
             arg = args[i]
-            debug_trace(f"ARG: {arg}")
+            _flags_debug_trace(f"ARG: {arg}")
             if (flag := self._find(arg)):
-                debug_trace(f"found flag {flag.flag}")
+                _flags_debug_trace(f"found flag {flag.flag}")
                 _assert_that_flag_types_havent_changed(3)
                 match flag:
                     case IntFlag() | StringFlag():
@@ -310,7 +310,7 @@ this program.")
                 # If the user didn't pass any arguments (when they should have)
                 # or if they explicitly asked for help, show the help.
                 self.output_function(self._generate_help_message(program_path))
-            debug_trace(required_but_not_given_flags)
+            _flags_debug_trace(required_but_not_given_flags)
             missing_flags = ", ".join(flag.flag for flag in required_but_not_given_flags)
             assert len(required_but_not_given_flags) == 0, \
                 f"You need to pass the following obligatory flags: {missing_flags}"
