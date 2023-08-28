@@ -4,8 +4,6 @@ from typing_extensions import assert_never
 from os.path import basename as os_path_basename
 from functools import partial
 
-import levenshtein
-
 # DEV SETUP
 
 _DEBUG = False
@@ -137,6 +135,7 @@ class FlagHandler:
         self.help_flag: Optional[BoolFlag] = None
         # The help flag is special because we can set it automatically
         self.output_function: Callable[[str], Any] = partial(print, end="")
+        self.string_distance_function: Callable[[str, str], int] = naive_levenshtein_distance
 
     def _check_if_flag_already_exists(self, flag_name: str,
                                       aliases: Optional[list[str]] = None) -> None:
@@ -398,10 +397,11 @@ this program.")
         for flag in self.flags:
             shortest_distance = tolerance + 1  # Initiate outside the tolerance
             # Update the shortest distance if new shortest distance was found
-            shortest_distance = min(shortest_distance, string_distance(attempted_flag, flag.flag))
+            shortest_distance = min(shortest_distance,
+                                    self.string_distance_function(attempted_flag, flag.flag))
             if flag.aliases is not None and len(flag.aliases) > 0:
                 # Find the shortest distance to any of the aliases
-                min_alias_distance = min(string_distance(attempted_flag, alias)
+                min_alias_distance = min(self.string_distance_function(attempted_flag, alias)
                                          for alias in flag.aliases)
                 # Update the shortest distance if new shortest distance was found
                 # Could be done in one line, but this is easier to see.
@@ -415,7 +415,25 @@ this program.")
         return [c[0] for c in sorted(keyed_candidates, key=lambda t: t[1])][:limit]
 
 
-def string_distance(str1: str, str2: str) -> int:
-    """Computes the distance between two strings."""
-    # TODO: Let user customize the edit distance function
-    return levenshtein.levenshtein_distance(str1, str2)
+def naive_levenshtein_distance(str1: str, str2: str) -> int:
+    """Naive recursive implementation of Levenshtein distance
+
+    Args:
+        str1 (str): The origin string.
+        str2 (str): The target string.
+
+    Returns:
+        int: The levenshtein distance.
+    """
+
+    # TODO: write the non-naive dynamic programming version of lev distance
+    if len(str2) == 0:  # Goal is empty string
+        return len(str1)  # Remove all characters
+    elif len(str1) == 0:  # Start is empty string
+        return len(str2)  # Add all the characters
+    elif str1[0] == str2[0]:
+        return naive_levenshtein_distance(str1[1:], str2[1:])  # Recurse on the non-matching section
+    else:
+        return 1 + min(naive_levenshtein_distance(str1[1:], str2),
+                       naive_levenshtein_distance(str1, str2[1:]),
+                       naive_levenshtein_distance(str1[1:], str2[1:]))
