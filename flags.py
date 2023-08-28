@@ -90,6 +90,9 @@ Try using FlagHandler.parse(...)."""
 
 @dataclass
 class StringFlag(Flag):
+    # TODO: If I do implement a string .take() method, this may consume a flag, since flags are strings.
+    # Therefore, this class needs some knowledge of what flag commands are/look like.
+    # Maybe enforce that flags must start with "-".
     _data: Optional[str] = None
 
     @property
