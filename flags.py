@@ -21,6 +21,13 @@ _flags_debug_trace("If you don't want debug logs, change the `_DEBUG` variable i
 
 # FLAG TYPES:
 
+# TODO: Change Flags to have a "take" method that tries to parse the next argument(s), \
+# i.e. change the responsibility to parse the argument to the flags instead of the \
+# FlagHandler. This will probably make implementing "greedy" flags trivial.
+
+
+# TODO: Refactor code duplication in errors for the diffent kinds of typed flags.
+
 @dataclass
 class Flag:
     flag: str
@@ -46,6 +53,7 @@ Try using FlagHandler.parse(...)."""
         assert value is not None, "You can't set the flag's data to a None value."
         try:
             self._data = int(value)
+            # TODO: There's nothing actually enforcing value is an integer. This would just truncate floats, for example.
         except ValueError:
             raise ValueError(
                 f"`{value}` is not a valid value for an `IntFlag`.")
@@ -259,7 +267,7 @@ class FlagHandler:
 
         result: dict[str, flag_value] = {}
 
-        program_path = args[0]
+        program_path = args[0]  # Consumes index 0 already.
 
         if not self.help_flag:
             # Generate a help flag if there isn't one already.
@@ -267,7 +275,7 @@ class FlagHandler:
         help_requested = False
 
         # handle all args
-        i = 1
+        i = 1  # Since we consumed index 0 (program name).
         while i < len(args):
             arg = args[i]
             _flags_debug_trace(f"ARG: {arg}")
@@ -444,7 +452,8 @@ def naive_levenshtein_distance(str1: str, str2: str) -> int:
     elif len(str1) == 0:  # Start is empty string
         return len(str2)  # Add all the characters
     elif str1[0] == str2[0]:
-        return naive_levenshtein_distance(str1[1:], str2[1:])  # Recurse on the non-matching section
+        # Recurse on the non-matching section
+        return naive_levenshtein_distance(str1[1:], str2[1:])
     else:
         return 1 + min(naive_levenshtein_distance(str1[1:], str2),
                        naive_levenshtein_distance(str1, str2[1:]),
