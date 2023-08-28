@@ -3,6 +3,7 @@ from typing import Union, Optional, Callable, Any, Sequence, cast
 from typing_extensions import assert_never
 from os.path import basename as os_path_basename
 from functools import partial
+import warnings
 
 # DEV SETUP
 
@@ -36,8 +37,8 @@ class IntFlag(Flag):
     @property
     def data(self) -> int:
         assert self._data is not None, \
-            f"Tried to access the data for flag {self.flag} before assigning a value to it.\
-                Try using FlagHandler.parse(...)."
+            f"""Tried to access the data for flag `{self.flag}` before assigning a value to it. \
+Try using FlagHandler.parse(...)."""
         return self._data
 
     @data.setter
@@ -46,7 +47,8 @@ class IntFlag(Flag):
         try:
             self._data = int(value)
         except ValueError:
-            raise ValueError(f"`{value}` is not a valid value for an `IntFlag`.")
+            raise ValueError(
+                f"`{value}` is not a valid value for an `IntFlag`.")
         except Exception as e:
             raise e
 
@@ -62,8 +64,8 @@ class BoolFlag(Flag):
     @property
     def data(self) -> bool:
         assert self._data is not None, \
-            f"Tried to access the data for flag {self.flag} before assigning \
-                a value to it. Try using FlagHandler.parse(...)."
+            f"""Tried to access the data for flag `{self.flag}` before assigning a value to it. \
+Try using FlagHandler.parse(...)."""
         return self._data
 
     @data.setter
@@ -74,7 +76,8 @@ class BoolFlag(Flag):
         elif value in [True, "true", "True", "TRUE" "1", "t", "T"]:
             self._data = True
         else:
-            raise ValueError(f"`{value}` is not a valid value for a `BoolFlag`.")
+            raise ValueError(
+                f"`{value}` is not a valid value for a `BoolFlag`.")
 
 
 @dataclass
@@ -84,8 +87,8 @@ class StringFlag(Flag):
     @property
     def data(self) -> str:
         assert self._data is not None, \
-            f"Tried to access the data for flag {self.flag} before assigning \
-                a value to it. Try using FlagHandler.parse(...)."
+            f"""Tried to access the data for flag `{self.flag}` before assigning a value to it. \
+Try using FlagHandler.parse(...)."""
         return self._data
 
     @data.setter
@@ -94,7 +97,8 @@ class StringFlag(Flag):
         try:
             self._data = str(value)
         except ValueError:
-            raise ValueError(f"`{value}` is not a valid value for a `StringFlag`.")
+            raise ValueError(
+                f"`{value}` is not a valid value for a `StringFlag`.")
         except Exception as e:
             raise e
 
@@ -268,12 +272,20 @@ class FlagHandler:
             arg = args[i]
             _flags_debug_trace(f"ARG: {arg}")
             if (flag := self._find(arg)):
+                if flag.flag in result:
+                    # We have parsed this flag before.
+                    warnings.warn(f"Already parsed flag `{arg}`. Did you really mean to repeat this flag? The value will be set to the last instance of the argument.")
+                    # TODO: only throw one warning per flag.
+                    # Comment on above ^ This already happens. Maybe because warnings.warn doesn't throw additional warnings with the same message?
+                # TODO: handle cases where overriding flags that already have values. e.g:
+                # warnings.warn(f"The flag `{arg}` already has a value, despite having not been parsed this time. Now trying to overwrite the previous value with the new value.")
                 _flags_debug_trace(f"found flag {flag.flag}")
                 _assert_that_flag_types_havent_changed(3)
                 match flag:
                     case IntFlag() | StringFlag():
-                        assert i+1 < len(args), f"Expected more arguments for flag `{arg}`."
-                        flag.data = args[i+1]  # Try to assign the next token to the flag data.
+                        assert i + 1 < len(args), f"Expected more arguments for flag `{arg}`."
+                        # Try to assign the next token to the flag data.
+                        flag.data = args[i+1]
                         result[flag.flag] = flag.data
                         i += 1  # Skip next one, since we already processed it.
                     case BoolFlag():
